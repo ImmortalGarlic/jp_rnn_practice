@@ -1,6 +1,7 @@
 import torch, time, math
 import torch.autograd as autograd
 import torch.nn as nn
+import MeCab as mcb
 
 
 class RNN(nn.Module):
@@ -25,7 +26,39 @@ class RNN(nn.Module):
     return autograd.Variable(torch.zeros(self.n_layers, 1, self.hidden_size))
 ''' end of class RNN '''
 
-def eva(prime_str='時間のある時', predict_len=200, )
+split_list = "\n　、。；：❝❞“””’’ー＝＃[]−｛｝「」（）【】『』《》〈〉｜！＊※＆〜｀ "
+
+def eva(prime_str='時間のある時', predict_len=200, heat=0.8):
+  tagger = mcb.Tagger('-Owakati')
+  wakati = tagger.parse(prime_str)
+  wakati = wakati.replace('\n', '').split(' ').remove('')
+  word_uniq = open('./{}/uni_words'.format(author), 'r', encoding='utf-8').read().split('\n')
+  wakati_index = [word_uniq.index(x) for x in wakati]
+  wakati_tensor = torch.zeros(len(wakati_index)).long()
+  for i in range(len(wakati_index)):
+    wakati_tensor[i] = wakati_index[i]
+  wakati_var = autograd.Variable(wakati_tensor)
+
+  hidden = decoder.init_hidden()
+  prime_input = wakati_var
+  predicted = prime_str
+  # Use priming string to "build up" hidden state
+  for j in range(len(prime_str) - 1):
+    _, hidden = decoder(prime_input[j], hidden)
+  inp = prime_input[-1]
+    
+  for p in range(predict_len):
+    output, hidden = decoder(inp, hidden)
+        
+    # Sample from the network as a multinomial distribution
+    output_dist = output.data.view(-1).div(temperature).exp()
+    top_i = torch.multinomial(output_dist, 1)[0]
+        
+    # Add predicted character to string and use as next input
+    predicted_char = all_characters[top_i]
+    predicted += predicted_char
+    inp = char_tensor(predicted_char)
+  return predicted
 
 def train(input, target):
   hidden = decoder.initHidden()
@@ -39,8 +72,6 @@ def train(input, target):
 
   return output, loss.data[0] / input.size()[0]
 
-
-
 if __main__ == '__name__':
   ''' training parameters '''
   n_epochs = 2000
@@ -49,4 +80,22 @@ if __main__ == '__name__':
   n_layers = 1
   learning_rate = 0.0005
 
-  decoder = RNN ()
+  decoder = RNN(n_characters, hidden_size, n_characters, n_layers)
+  decoder_optimizer = torch.optim.Adam(decoder.parameters(), lr=lr)
+  criterion = nn.CrossEntropyLoss()
+
+  start = time.time()
+  all_losses = []
+  loss_avg = 0
+
+  for epoch in range(1, n_epochs + 1):
+    loss = train(*random_training_set())       
+    loss_avg += loss
+
+    if epoch % print_every == 0:
+      print('[%s (%d %d%%) %.4f]' % (time_since(start), epoch, epoch / n_epochs * 100, loss))
+      print(evaluate('Wh', 100), '\n')
+
+    if epoch % plot_every == 0:
+      all_losses.append(loss_avg / plot_every)
+      loss_avg = 0

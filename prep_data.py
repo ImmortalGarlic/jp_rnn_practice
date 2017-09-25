@@ -50,6 +50,15 @@ def word_embed(text, name):
 ''' Tutorial starting from here
     TODO: Why no word embedding '''
 
+def char_var(chunk_index):
+  chunk_tensor = torch.zeros(len(chunk_index)).long()
+  for i in range(len(chunk_index)):
+    chunk_tensor[i] = chunk_index[i]
+  chunk_variable = autograd.Variable(chunk_tensor)
+  pickle.dump(chunk_variable, open('./{}/train_chunk.var'.format(author), 'wb'))
+  return chunk_variable
+
+
 ''' Prepare training data '''
 def random_chunk(token):
   for punc in split_list:
@@ -63,11 +72,7 @@ def random_chunk(token):
   # return indices of chunk
   word_uniq = open('./{}/uni_words'.format(author), 'r', encoding='utf-8').read().split('\n')
   chunk_index = [word_uniq.index(x) for x in term_list[start_index : end_index]]
-  chunk_tensor = torch.zeros(len(chunk_index)).long()
-  for i in range(len(chunk_index)):
-    chunk_tensor[i] = chunk_index[i]
-  chunk_variable = autograd.Variable(chunk_tensor)
-  pickle.dump(chunk_variable, open('./{}/train_chunk.var'.format(author), 'wb'))
+  char_var(chunk_index)
   print ('Finished dumping Torch.Variable.')
   # return autograd.Variable(chunk_index)
 
